@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monitoramento Inteligente Industrial</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<header>
+  <h1>App de IA para Indústria e Logística</h1>
+</header>
+
+<div class="inputs-rota">
+  <input id="origem" placeholder="Endereço de origem" value="São Paulo, SP">
+  <input id="destino" placeholder="Endereço de destino" value="Campinas, SP">
+  <button onclick="atualizarRota()">Atualizar Rota</button>
+</div>
+
+<section class="dashboard" id="dashboard">
+  <!-- Cartões serão inseridos dinamicamente -->
+</section>
+
+<footer>
+  &copy; 2025 Projeto IA Industrial com Node.js
+</footer>
+
+<script>
+  const socket = new WebSocket('ws://localhost:3000');
+
+  socket.addEventListener('message', function (event) {
+    const dados = JSON.parse(event.data);
+    const dashboard = document.getElementById('dashboard');
+    dashboard.innerHTML = '';
+
+    dados.forEach((item) => {
+      const div = document.createElement('div');
+      div.classList.add('card');
+
+      const statusClass = item.status.toLowerCase();
+
+      div.innerHTML = `
+        <h2>${item.titulo}</h2>
+        <p>${item.mensagem}</p>
+        <p class="status ${statusClass}">${item.status}</p>
+      `;
+
+      dashboard.appendChild(div);
+    });
+
+    atualizarRota();
+  });
+
+  async function buscarRota(origem, destino) {
+    try {
+      const res = await fetch(`/api/rota?origem=${encodeURIComponent(origem)}&destino=${encodeURIComponent(destino)}`);
+      const dados = await res.json();
+
+      const div = document.createElement('div');
+      div.classList.add('card');
+      div.dataset.tipo = 'rota';
+
+      div.innerHTML = `
+        <h2>Previsão de Chegada (OpenRouteService)</h2>
+        <p>De: ${dados.origem}</p>
+        <p>Para: ${dados.destino}</p>
+        <p>Duração: ${dados.duracao}</p>
+        <p>Distância: ${dados.distancia}</p>
+        <p class="status ok">Rota atualizada</p>
+      `;
+
+      const dashboard = document.getElementById('dashboard');
+      const antigo = dashboard.querySelector('.card[data-tipo="rota"]');
+      if (antigo) antigo.remove();
+
+      dashboard.appendChild(div);
+    } catch (err) {
+      console.error('Erro ao buscar rota:', err);
+    }
+  }
+
+  function atualizarRota() {
+    const origem = document.getElementById('origem').value.trim();
+    const destino = document.getElementById('destino').value.trim();
+
+    if (!origem || !destino) {
+      alert('Por favor, preencha os dois endereços.');
+      return;
+    }
+
+    buscarRota(origem, destino);
+  }
+
+  atualizarRota();
+</script>
+
+</body>
+</html>
